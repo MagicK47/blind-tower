@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>盲域判定系统设计稿</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="core-system-design.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <img src="assets/book-background.png" alt="古书游戏底图" />
+      <div class="hero-copy">
+        <span class="kicker">Core System Draft v0.1</span>
+        <h1>盲域判定系统</h1>
+        <p>
+          一套把战斗、开锁、采集、治疗、仪式和潜行统一起来的动作化 RPG 检定机制。
+          玩家先观察目标，按住后目标与行动区域同时隐藏，凭记忆和预判释放，最后按重叠质量结算。
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="band intro">
+        <div class="section-title">
+          <span>01</span>
+          <h2>核心判断</h2>
+        </div>
+        <div class="lead-grid">
+          <article>
+            <h3>它不是小游戏插入</h3>
+            <p>
+              盲域判定应该成为 RPG 的底层交互。攻击、拆陷阱、采药、疗伤和施法只是目标形状、行动形状、运动规律和结算表不同。
+            </p>
+          </article>
+          <article>
+            <h3>观察不限时</h3>
+            <p>
+              玩家回合可以一直观察目标动向，直到自己决定出手。难点来自承诺后目标与范围隐藏、目标继续运动，以及玩家对节奏和空间的预判。
+            </p>
+          </article>
+          <article>
+            <h3>成长不能只加伤害</h3>
+            <p>
+              玩家变强要体现在信息揭示、隐藏残影、手部稳定、预判辅助、行动范围、弱点识别、失败保护和连击节奏上。
+            </p>
+          </article>
+          <article>
+            <h3>内容必须可编辑</h3>
+            <p>
+              每个怪物、事件、武器、技能和 Buff 都由同一组参数描述。编辑器生成的是可校验的数据，而不是写死的特殊逻辑。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>02</span>
+          <h2>一次判定的五阶段</h2>
+        </div>
+        <div class="loop">
+          <div class="loop-card">
+            <strong>观察</strong>
+            <p>目标与真实尺寸预览可见。观察不限时，但高级信息、弱点、危险区和预判线索受角色能力影响。</p>
+          </div>
+          <div class="loop-card">
+            <strong>蓄势</strong>
+            <p>按住鼠标或触屏。目标、鼠标、行动区域隐藏。角色进入不可取消或半可取消状态。</p>
+          </div>
+          <div class="loop-card">
+            <strong>盲操</strong>
+            <p>玩家拖动不可见行动区域。目标可继续移动、闪现、旋转或变形。</p>
+          </div>
+          <div class="loop-card">
+            <strong>释放</strong>
+            <p>松手后瞬间揭示目标当前位置、行动区域、弱点命中、危险触碰。</p>
+          </div>
+          <div class="loop-card">
+            <strong>结算</strong>
+            <p>按重叠质量、部位、属性、装备、Buff 和环境生成结果。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band split">
+        <div>
+          <div class="section-title">
+            <span>03</span>
+            <h2>统一公式</h2>
+          </div>
+          <div class="formula">
+            <code>
+              判定分 = 重叠质量 + 弱点奖励 + 属性修正 + 装备修正 + 技能修正 + Buff修正 - 目标难度 - 环境干扰
+            </code>
+          </div>
+          <p class="body-copy">
+            这里的“重叠质量”不是只有命中或没命中。它可以来自面积覆盖比例、中心点距离、命中部位、方向角度、释放时机和目标状态。
+            这让同一个操作可以产生完美、成功、擦中、失败、反噬五档结果。
+          </p>
+        </div>
+        <div class="score-stack">
+          <div class="score-row perfect"><span>完美</span><b>核心弱点命中，额外收益</b></div>
+          <div class="score-row hit"><span>成功</span><b>主体命中，正常收益</b></div>
+          <div class="score-row graze"><span>擦中</span><b>低收益，可能有代价</b></div>
+          <div class="score-row miss"><span>失败</span><b>无收益或消耗资源</b></div>
+          <div class="score-row backlash"><span>反噬</span><b>碰到危险区，触发惩罚</b></div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>04</span>
+          <h2>玩家成长轴</h2>
+        </div>
+        <div class="matrix">
+          <article>
+            <h3>观察力</h3>
+            <p>不再增加观察时长，而是提高观察质量：显示更多目标信息、弱点、危险区和下一次移动预兆。</p>
+            <ul>
+              <li>怪物起跳前出现脚印方向</li>
+              <li>机关旋转轨迹有短暂残影</li>
+              <li>采集目标显示高品质区域</li>
+            </ul>
+          </article>
+          <article>
+            <h3>记忆力</h3>
+            <p>按住后保留目标残影，或让目标隐藏更慢。</p>
+            <ul>
+              <li>0.3 秒淡出残影</li>
+              <li>上一位置留下墨痕</li>
+              <li>显示最后移动方向</li>
+            </ul>
+          </article>
+          <article>
+            <h3>专注力</h3>
+            <p>减少拖动时的手抖、漂移、呼吸晃动和环境干扰。</p>
+            <ul>
+              <li>攻击区域实际位置更稳定</li>
+              <li>中毒、恐惧造成的抖动降低</li>
+              <li>蓄势时间窗口更宽</li>
+            </ul>
+          </article>
+          <article>
+            <h3>预判力</h3>
+            <p>给移动目标提供未来位置线索，但不直接显示答案。</p>
+            <ul>
+              <li>短暂显示未来影子</li>
+              <li>听觉节拍提示跳跃间隔</li>
+              <li>闪现怪出现符文倒计时</li>
+            </ul>
+          </article>
+          <article>
+            <h3>控制力</h3>
+            <p>改变行动区域的移动速度、惯性、转向灵敏度和释放修正。</p>
+            <ul>
+              <li>重武器拖动惯性降低</li>
+              <li>松手后微修正半径增加</li>
+              <li>长按时攻击区域不漂移</li>
+            </ul>
+          </article>
+          <article>
+            <h3>熟练度</h3>
+            <p>提升特定武器或工具的范围、伤害、完美阈值和特殊效果。</p>
+            <ul>
+              <li>匕首暴击核心更大</li>
+              <li>长矛线段更长</li>
+              <li>开锁针危险触发范围降低</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>05</span>
+          <h2>武器、技能、工具如何统一</h2>
+        </div>
+        <div class="cards weapons">
+          <article>
+            <div class="shape dagger"></div>
+            <h3>匕首</h3>
+            <p>小圆点。难命中，高暴击。适合打弱点和小型目标。</p>
+            <code>shape: point, coreDamage: high</code>
+          </article>
+          <article>
+            <div class="shape spear"></div>
+            <h3>长矛</h3>
+            <p>细长线。适合预判冲锋、飞行路线和狭长机关。</p>
+            <code>shape: line, reach: long</code>
+          </article>
+          <article>
+            <div class="shape sword"></div>
+            <h3>大剑</h3>
+            <p>扇形范围。容错高，但边缘伤害低，容易碰危险区。</p>
+            <code>shape: arc, edgeFalloff: true</code>
+          </article>
+          <article>
+            <div class="shape hammer"></div>
+            <h3>战锤</h3>
+            <p>大圆范围。命中容易，前摇长，适合打大怪和破坏事件。</p>
+            <code>shape: circle, windup: slow</code>
+          </article>
+          <article>
+            <div class="shape fireball"></div>
+            <h3>火球</h3>
+            <p>范围法术。中心高伤，边缘低伤，可点燃场景目标。</p>
+            <code>shape: blast, damageFalloff: true</code>
+          </article>
+          <article>
+            <div class="shape lockpick"></div>
+            <h3>开锁针</h3>
+            <p>工具也是行动区域。命中齿位成功，碰到警戒区触发陷阱。</p>
+            <code>shape: needle, dangerSensitive: true</code>
+          </article>
+        </div>
+      </section>
+
+      <section class="band split">
+        <div>
+          <div class="section-title">
+            <span>06</span>
+            <h2>Buff 与 Debuff</h2>
+          </div>
+          <p class="body-copy">
+            Buff 不应该只写“命中率 +10%”。更好的做法是修改盲域系统里的具体参数，让玩家感到状态改变了手感。
+          </p>
+        </div>
+        <div class="effect-list">
+          <div><b>鹰眼</b><span>弱点揭示等级 +1，未来影子 +1 帧</span></div>
+          <div><b>稳手</b><span>盲操阶段漂移 -40%，释放微修正 +8 像素</span></div>
+          <div><b>战意</b><span>连续成功时行动区域 +6%，完美伤害 +1</span></div>
+          <div><b>恐惧</b><span>按住后目标残影消失更快，手部随机抖动增加</span></div>
+          <div><b>中毒</b><span>拖动速度不稳定，长按超过阈值会偏移</span></div>
+          <div><b>黑暗</b><span>观察阶段目标只显示轮廓，危险区不可见</span></div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>07</span>
+          <h2>怪物与事件特性</h2>
+        </div>
+        <div class="cards bestiary">
+          <article>
+            <h3>位移难度基线</h3>
+            <p>大多数普通怪物只保留轻微呼吸或几像素漂移；明显移动是敏捷怪、首领与特殊事件的稀缺特性。第一章主要让玩家熟悉尺寸和盲投，不用移动速度制造门槛。</p>
+            <span>mostly static / authored exceptions</span>
+          </article>
+          <article>
+            <h3>史莱姆</h3>
+            <p>大体积，慢移动，高血量。适合作为新手训练目标。</p>
+            <span>large / slow / thick</span>
+          </article>
+          <article>
+            <h3>蝙蝠</h3>
+            <p>小体积，节奏跳跃。考验玩家记忆与释放节奏。</p>
+            <span>small / hop / fragile</span>
+          </article>
+          <article>
+            <h3>野猪</h3>
+            <p>隐藏后直线冲锋。长矛、陷阱、预判类技能更有效。</p>
+            <span>charge / linear / armor</span>
+          </article>
+          <article>
+            <h3>幽灵</h3>
+            <p>释放前闪现一次。观察力高时能看到符文倒计时。</p>
+            <span>blink / phase / clue</span>
+          </article>
+          <article>
+            <h3>开锁</h3>
+            <p>目标是锁芯齿位，危险区是警报簧片。工具越好，针尖越稳。</p>
+            <span>precision / danger / tool</span>
+          </article>
+          <article>
+            <h3>采药</h3>
+            <p>目标是花蕊和根部。完美命中给高品质材料，擦中给普通材料。</p>
+            <span>quality / fragile / harvest</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>08</span>
+          <h2>内容数据结构草案</h2>
+        </div>
+        <div class="schema-grid">
+          <pre><code>actionProfile:
+  id: spear_thrust
+  source: weapon
+  shape: line
+  length: 180
+  width: 18
+  windup: 0.35
+  blindDrag:
+    cursorHidden: true
+    actionHidden: true
+    drift: 0.08
+  outcome:
+    perfect: damage 9, pierce
+    hit: damage 5
+    graze: damage 2</code></pre>
+          <pre><code>targetProfile:
+  id: cave_bat
+  type: monster
+  hp: 3
+  bodyShape: ellipse
+  size: small
+  movementScale: 0.08
+  movementHidden:
+    pattern: hop
+    interval: 0.65
+    distance: 80
+  weakPoints:
+    - head: small_circle
+  dangerZones:
+    - wing_edge: counterattack</code></pre>
+          <pre><code>checkProfile:
+  id: ancient_lock
+  type: adventure_event
+  action: lockpick
+  targetShape: rotating_pins
+  revealLevelRequired: 2
+  hiddenMotion:
+    pattern: gear_rotate
+  success:
+    perfect: open_silent
+    hit: open
+    graze: tool_durability -1
+    miss: noise +1
+    backlash: trigger_trap</code></pre>
+        </div>
+      </section>
+
+      <section class="band roadmap">
+        <div class="section-title">
+          <span>09</span>
+          <h2>最小 Unity 原型范围</h2>
+        </div>
+        <div class="roadmap-grid">
+          <div>
+            <b>战斗目标</b>
+            <p>3 个怪物：史莱姆、穴居斥候、野猪。分别验证近乎静止、原地小跳、短距离蓄力。</p>
+          </div>
+          <div>
+            <b>行动区域</b>
+            <p>4 个武器：匕首、长矛、大剑、火球。验证点、线、扇、圆。</p>
+          </div>
+          <div>
+            <b>事件目标</b>
+            <p>3 个事件：开锁、采药、疗伤。验证非战斗检定也成立。</p>
+          </div>
+          <div>
+            <b>成长验证</b>
+            <p>3 个升级：残影延长、范围扩大、拖动稳定。验证变强是否有体感。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>10</span>
+          <h2>游戏界面与模式切换</h2>
+        </div>
+        <div class="ui-layout">
+          <div class="mock-screen">
+            <div class="scene-area">
+              <b>2D 格子探索 / 判定场</b>
+              <span>移动、探索、战斗目标、事件目标</span>
+            </div>
+            <div class="side-panel">
+              <b>属性</b>
+              <b>装备</b>
+              <b>背包</b>
+              <b>日志</b>
+            </div>
+            <div class="hotbar">
+              <span>普攻</span>
+              <span>技能</span>
+              <span>技能</span>
+              <span>道具</span>
+              <span>互动</span>
+            </div>
+          </div>
+          <div class="mode-notes">
+            <article>
+              <h3>探索状态</h3>
+              <p>主区域是 2D 格子地图。玩家移动、调查、触发事件或接敌。右侧显示角色、装备、背包和任务信息；下方显示可用动作。</p>
+            </article>
+            <article>
+              <h3>判定状态</h3>
+              <p>不建议黑屏切小游戏。当前场景变暗或聚焦，目标进入判定场，下方快捷栏仍然保留，玩家从快捷栏把行动范围拖入场景。</p>
+            </article>
+            <article>
+              <h3>回合制战斗</h3>
+              <p>轮到玩家时可以无限观察目标动向。玩家选择行动并拖出承诺线后，目标、鼠标和行动范围隐藏；松手后揭示并结算。敌人回合前期可直接按技能攻击玩家。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band split">
+        <div>
+          <div class="section-title">
+            <span>11</span>
+            <h2>真实尺寸预览与练习模式</h2>
+          </div>
+          <p class="body-copy">
+            快捷栏图标只能表达“形状”，不能表达真实大小。因此所有行动都必须支持场景内真实比例预览，
+            让玩家在正式隐藏前知道它相对目标究竟有多大。
+          </p>
+          <div class="preview-flow">
+            <div><b>悬停</b><span>场景显示真实尺寸半透明预览，目标仍可见。</span></div>
+            <div><b>按住</b><span>玩家可以拖动预览，比较范围与目标比例。</span></div>
+            <div><b>拖出承诺线</b><span>进入正式行动，目标、范围、鼠标隐藏，不可取消。</span></div>
+            <div><b>松手</b><span>揭示目标当前位置与行动区域，按重叠质量结算。</span></div>
+          </div>
+        </div>
+        <div class="practice-panel">
+          <h3>Practice Mode</h3>
+          <p>练习模式用于建立公平感和手感，不产生正式效果。</p>
+          <ul>
+            <li>不隐藏目标、不隐藏行动范围、不隐藏鼠标。</li>
+            <li>不消耗回合、资源、耐久，也不造成伤害。</li>
+            <li>松手后显示“如果这是正式行动，会命中哪里”。</li>
+            <li>训练场可无限练；战斗内预演只显示范围，不预测隐藏后的未来位置。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>12</span>
+          <h2>设计记录约定</h2>
+        </div>
+        <div class="record-grid">
+          <article>
+            <h3>稳定结论要入稿</h3>
+            <p>之后聊天里达成的机制结论，不只停留在对话中，要补进这份设计稿，逐步形成可开发的完整规格。</p>
+          </article>
+          <article>
+            <h3>先统一，再扩展</h3>
+            <p>新武器、新怪物、新事件、新 Buff 都优先映射到同一套盲域参数，只有通用参数无法表达时才新增规则。</p>
+          </article>
+          <article>
+            <h3>原型优先验证手感</h3>
+            <p>Unity MVP 先验证拖出承诺线、隐藏目标、真实尺寸预览、练习模式和几种典型目标运动，再扩充剧情和世界。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <span>13</span>
+          <h2>界面差异化原则</h2>
+        </div>
+        <div class="identity-grid">
+          <article>
+            <h3>传统布局只是骨架</h3>
+            <p>右侧属性面板、底部快捷栏、主场景区域可以保证可用性，但它们本身不构成卖点。最终画面不能停留在“常规 RPG UI 换皮”。</p>
+          </article>
+          <article>
+            <h3>卖点要落在出手仪式</h3>
+            <p>玩家从快捷栏抽出武器/技能，拖过承诺线后世界、目标、范围和鼠标同时隐去。这个瞬间应成为游戏最有辨识度的画面与手感。</p>
+          </article>
+          <article>
+            <h3>UI 要服务盲域主题</h3>
+            <p>界面风格应围绕“观察、记忆、预判、揭示”设计，例如残影、墨迹、测距刻线、目标轮廓、出手轨迹和结果回放。</p>
+          </article>
+        </div>
+        <div class="direction-board">
+          <div>
+            <b>避免</b>
+            <span>普通手游式头像血条、密集背包格、发光技能按钮、信息面板堆叠、等距 3D 战棋、小人棋盘、微缩模型感。</span>
+          </div>
+          <div>
+            <b>强调</b>
+            <span>2D 冒险场景本身，快捷栏像武器架或法术卷轴，右侧面板默认收敛，只在需要时展开。格子是移动和距离单位，不是战棋棋盘主视觉。</span>
+          </div>
+          <div>
+            <b>目标</b>
+            <span>截图第一眼就能看出“这是一个靠盲判出手的 2D 冒险 RPG”，而不是普通 2D RPG，也不是 3D 战棋。</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.vite/
+*.log
+
+# Local playtest evidence and earlier visual experiments
+game.js
+assets/concepts/
+qa-*.png
+demo-*.png
+prototype-*.png
+core-system-design-*.png
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

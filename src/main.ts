@@ -13,9 +13,9 @@ installAssetCssVariables();
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
   <main class="game-shell">
-    <section class="game-frame" aria-label="盲域魔塔游戏">
+    <section class="game-frame" aria-label="失明王座五十层魔塔游戏">
       <header class="tower-header">
-        <div class="brand-mark"><img src="${tileUrl(56)}" alt="" /><span><b>盲域魔塔</b><small>失明王座 · 50 层</small></span></div>
+        <div class="brand-mark"><img src="${tileUrl(56)}" alt="" /><span><b>失明王座</b><small>经典魔塔 · 50 层</small></span></div>
         <div class="floor-heading"><strong id="floor-number">第 1 层</strong><span id="floor-name">遗忘墓道</span></div>
         <div class="header-actions">
           <button class="icon-button" id="quick-save" type="button" title="快速存档" aria-label="快速存档"><img src="${tileUrl(65)}" alt="" /></button>
@@ -27,12 +27,6 @@ app.innerHTML = `
         <section class="world-panel">
           <div id="phaser-root" aria-label="塔层地图"></div>
           <div class="floor-ribbon"><span id="theme-subtitle"></span><b id="floor-objective"></b></div>
-          <div class="dpad" aria-label="移动方向">
-            <button type="button" data-move="0,-1" aria-label="向上">▲</button>
-            <button type="button" data-move="-1,0" aria-label="向左">◀</button>
-            <button type="button" data-move="0,1" aria-label="向下">▼</button>
-            <button type="button" data-move="1,0" aria-label="向右">▶</button>
-          </div>
         </section>
 
         <aside class="status-panel">
@@ -55,7 +49,7 @@ app.innerHTML = `
           </section>
 
           <section class="equipment-strip">
-            <h3>已掌握武器</h3>
+            <h3>已获得武具</h3>
             <div id="equipment-list"></div>
           </section>
 
@@ -72,11 +66,17 @@ app.innerHTML = `
       </div>
 
       <footer class="tool-belt">
-        <button type="button" id="open-bestiary"><img src="${tileUrl(74)}" alt="" /><span><b>怪物手册</b><small>已遭遇资料</small></span></button>
-        <button type="button" id="open-map"><img src="${tileUrl(18)}" alt="" /><span><b>塔之罗盘</b><small>已访问楼层</small></span></button>
-        <button type="button" id="use-bomb"><img src="${tileUrl(110)}" alt="" /><span><b>裂墙火药</b><small id="bomb-count">持有 0</small></span></button>
-        <button type="button" id="use-water"><img src="${tileUrl(114)}" alt="" /><span><b>回生圣水</b><small id="water-count">持有 0</small></span></button>
-        <div class="control-hint"><kbd>WASD</kbd><span>移动</span><kbd>拖动</kbd><span>盲投</span></div>
+        <button type="button" id="open-bestiary" aria-label="怪物手册" title="怪物手册"><img src="${tileUrl(74)}" alt="" /><span><b>怪物手册</b><small>战损资料</small></span></button>
+        <button type="button" id="open-map" aria-label="塔之罗盘" title="塔之罗盘"><img src="${tileUrl(18)}" alt="" /><span><b>塔之罗盘</b><small>已访问楼层</small></span></button>
+        <div class="dpad" aria-label="移动方向">
+          <button type="button" data-move="0,-1" aria-label="向上">▲</button>
+          <button type="button" data-move="-1,0" aria-label="向左">◀</button>
+          <button type="button" data-move="0,1" aria-label="向下">▼</button>
+          <button type="button" data-move="1,0" aria-label="向右">▶</button>
+        </div>
+        <button type="button" id="use-bomb" aria-label="使用裂墙火药" title="裂墙火药"><img src="${tileUrl(110)}" alt="" /><span><b>裂墙火药</b><small id="bomb-count">持有 0</small></span></button>
+        <button type="button" id="use-water" aria-label="使用回生圣水" title="回生圣水"><img src="${tileUrl(114)}" alt="" /><span><b>回生圣水</b><small id="water-count">持有 0</small></span></button>
+        <div class="control-hint"><kbd>WASD</kbd><span>移动</span><kbd>接敌</kbd><span>自动结算</span></div>
       </footer>
 
       <div id="combat-root"></div>
@@ -87,7 +87,7 @@ app.innerHTML = `
         <div class="title-art">
           <img class="title-rune" src="${tileUrl(56)}" alt="" />
           <img class="title-hero" src="${tileUrl(85)}" alt="" />
-          <div class="title-copy"><span>固定数值探索 × 盲区命中</span><h1>盲域魔塔</h1><p>失明王座</p></div>
+          <div class="title-copy"><span>固定数值探索 × 路线规划</span><h1>失明王座</h1><p>五十层魔塔</p></div>
           <img class="title-king" src="${tileUrl(110)}" alt="" />
         </div>
         <div class="title-menu">
@@ -167,13 +167,16 @@ function renderNearby(): void {
   container.className = "nearby-content";
   if (nearby.kind === "monster") {
     const monster = MONSTERS[nearby.monsterId];
-    const estimate = store.perfectFightEstimate(monster.id);
-    container.innerHTML = `<img src="${tileUrl(monster.sprite)}" alt="" style="filter: drop-shadow(0 0 7px #${monster.tint.toString(16).padStart(6, "0")});" /><div><b>${monster.name}</b><span>生命 ${monster.hp} · 完美战损 ${estimate.damage}</span></div>`;
+    const forecast = store.fightForecast(monster.id);
+    const outcome = !forecast.canDamage
+      ? "无法破防"
+      : `${forecast.canSurvive ? "预计损失" : "生命不足"} ${forecast.totalDamage} · ${forecast.rounds} 回合`;
+    container.innerHTML = `<img src="${tileUrl(monster.sprite)}" alt="" style="filter: drop-shadow(0 0 7px #${monster.tint.toString(16).padStart(6, "0")});" /><div><b>${monster.name}</b><span class="${forecast.canSurvive ? "" : "danger-text"}">HP ${monster.hp} · ${outcome}</span></div>`;
   } else if (nearby.kind === "item") {
     const item = ITEMS[nearby.itemId];
     container.innerHTML = `<img src="${tileUrl(item.sprite)}" alt="" /><div><b>${item.name}</b><span>${item.description}</span></div>`;
   } else {
-    const labels: Record<string, string> = { door: "锁门", stairs: "楼梯", npc: "塔中人物", shop: "流浪商人", trial: "盲域试炼" };
+    const labels: Record<string, string> = { door: "锁门", stairs: "楼梯", npc: "塔中人物", shop: "流浪商人", trial: "塔中机关" };
     const frame = nearby.kind === "npc" ? NPCS[nearby.npcId].sprite : nearby.kind === "shop" ? 97 : nearby.kind === "stairs" ? 36 : nearby.kind === "trial" ? 56 : 75;
     container.innerHTML = `<img src="${tileUrl(frame)}" alt="" /><div><b>${labels[nearby.kind]}</b><span>向它移动以互动</span></div>`;
   }
@@ -224,7 +227,7 @@ function openShop(entity: ShopEntity): void {
         <button type="button" data-upgrade="attack"><img src="${tileUrl(104)}" alt="" /><span><b>武器淬炼</b><small>攻击 +5</small></span><em>${price} 金</em></button>
         <button type="button" data-upgrade="defense"><img src="${tileUrl(102)}" alt="" /><span><b>护甲加固</b><small>防御 +5</small></span><em>${price} 金</em></button>
         <button type="button" data-upgrade="health"><img src="${tileUrl(114)}" alt="" /><span><b>生命祝福</b><small>最大生命 +260</small></span><em>${price} 金</em></button>
-        <button type="button" data-upgrade="insight"><img src="${tileUrl(56)}" alt="" /><span><b>盲感训练</b><small>洞察 +1</small></span><em>${price} 金</em></button>
+        <button type="button" data-upgrade="insight"><img src="${tileUrl(56)}" alt="" /><span><b>机关研习</b><small>洞察 +1</small></span><em>${price} 金</em></button>
       </div>`, "shop-modal");
     modal.querySelectorAll<HTMLButtonElement>("[data-upgrade]").forEach((button) => button.addEventListener("click", () => {
       if (store.buyUpgrade(entity.level, button.dataset.upgrade as "attack" | "defense" | "health" | "insight")) render();
@@ -266,7 +269,9 @@ function openBestiary(): void {
   const defeated = Object.entries(store.saveData.defeatedMonsters).sort((a, b) => MONSTERS[a[0]].attack - MONSTERS[b[0]].attack);
   const content = defeated.length ? defeated.map(([id, count]) => {
     const monster = MONSTERS[id];
-    return `<article class="monster-entry"><img src="${tileUrl(monster.sprite)}" alt="" /><div><b>${monster.name}</b><span>HP ${monster.hp} · 攻 ${monster.attack} · 防 ${monster.defense}</span><small>${monster.note}</small></div><em>击败 ${count}</em></article>`;
+    const forecast = store.fightForecast(id);
+    const outcome = !forecast.canDamage ? "当前无法破防" : `当前预计战损 ${forecast.totalDamage}`;
+    return `<article class="monster-entry"><img src="${tileUrl(monster.sprite)}" alt="" /><div><b>${monster.name}</b><span>HP ${monster.hp} · 攻 ${monster.attack} · 防 ${monster.defense}</span><small>${outcome} · ${forecast.rounds || "--"} 回合</small></div><em>击败 ${count}</em></article>`;
   }).join("") : `<div class="empty-state"><img src="${tileUrl(74)}" alt="" /><p>击败怪物后，它的完整资料会被写入手册。</p></div>`;
   openModal("怪物手册", `已记录 ${defeated.length} 种`, `<div class="bestiary-list">${content}</div>`, "bestiary-modal");
 }
@@ -274,17 +279,17 @@ function openBestiary(): void {
 function openHelp(): void {
   openModal("攀塔规则", "核心玩法", `
     <div class="help-grid">
-      <section><b>探索</b><p>方向键或 WASD 按格移动。钥匙开门，药剂、晶石与装备会立即生效。已经到达的楼层可用塔之罗盘往返。</p></section>
-      <section><b>战斗</b><p>目标可以无限观察。悬停武器会显示真实尺寸；从下方拖出攻击，越过承诺线后，目标、攻击范围和鼠标都会隐藏。</p></section>
-      <section><b>结算</b><p>松手瞬间按真实重叠判定。核心命中伤害更高；敌人未死就会反击。小怪更难命中，大怪更厚、更硬。</p></section>
-      <section><b>练习</b><p>战斗右侧可开启练习模式：不隐藏、不消耗、不造成效果，用来比对武器与目标的真实比例。</p></section>
+      <section><b>探索</b><p>方向键或 WASD 按格移动。钥匙开门，药剂、晶石与武具会立即生效。已经到达的楼层可用塔之罗盘往返。</p></section>
+      <section><b>战斗</b><p>勇者先手。每击伤害为“攻击减敌防”，敌人反击为“敌攻减勇者防”。最后一击结束战斗，敌人不会再反击。</p></section>
+      <section><b>战损</b><p>靠近怪物即可看到准确战损。攻击不高于敌方防御时无法破防；预计战损足以致命时，接敌会被阻止。</p></section>
+      <section><b>机关</b><p>机关会在确认前显示固定生命代价。洞察越高，代价越低；没有随机结果，也不需要拖动或长按。</p></section>
     </div>`);
 }
 
 function showDefeat(): void {
   combatView.close();
-  const modal = openModal("攀登在此中断", "你倒在盲区里", `
-    <div class="defeat-copy"><img src="${tileUrl(121)}" alt="" /><p>最后一次自动存档仍在。重新读取后，你可以换一条支路、先去商店，或者重新观察目标的节奏。</p></div>
+  const modal = openModal("攀登在此中断", "生命归零", `
+    <div class="defeat-copy"><img src="${tileUrl(121)}" alt="" /><p>最后一次自动存档仍在。重新读取后，可以换一条支路、先拿属性晶石，或把金币留给商店。</p></div>
     <div class="modal-actions"><button class="game-button primary" id="retry-save" type="button">读取最近存档</button><button class="game-button" id="restart-game" type="button">重新开始</button></div>`);
   modal.querySelector("#retry-save")?.addEventListener("click", () => { store.restoreLastSave(); closeModal(); });
   modal.querySelector("#restart-game")?.addEventListener("click", () => { store.newGame(); closeModal(); });
@@ -314,16 +319,53 @@ function handleEvent(event: GameEvent): void {
 store.subscribe(handleEvent);
 renderHud();
 
+const gameFrame = document.querySelector<HTMLElement>(".game-frame")!;
+for (const eventName of ["contextmenu", "dragstart", "selectstart"]) {
+  gameFrame.addEventListener(eventName, (event) => event.preventDefault());
+}
+gameFrame.querySelectorAll("img").forEach((image) => image.setAttribute("draggable", "false"));
+
 document.querySelector("#quick-save")?.addEventListener("click", () => store.save(true));
 document.querySelector("#open-help")?.addEventListener("click", openHelp);
 document.querySelector("#open-map")?.addEventListener("click", openMap);
 document.querySelector("#open-bestiary")?.addEventListener("click", openBestiary);
 document.querySelector("#use-bomb")?.addEventListener("click", () => store.useInventory("bomb"));
 document.querySelector("#use-water")?.addEventListener("click", () => store.useInventory("holyWater"));
-document.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((button) => button.addEventListener("pointerdown", () => {
-  const [dx, dy] = button.dataset.move!.split(",").map(Number);
-  store.tryMove(dx, dy);
-}));
+
+let moveHoldDelay = 0;
+let moveHoldInterval = 0;
+const stopHeldMove = (): void => {
+  window.clearTimeout(moveHoldDelay);
+  window.clearInterval(moveHoldInterval);
+  moveHoldDelay = 0;
+  moveHoldInterval = 0;
+};
+document.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((button) => {
+  const move = (): void => {
+    if (document.body.classList.contains("modal-open")) {
+      stopHeldMove();
+      return;
+    }
+    const [dx, dy] = button.dataset.move!.split(",").map(Number);
+    store.tryMove(dx, dy);
+  };
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    stopHeldMove();
+    button.setPointerCapture?.(event.pointerId);
+    move();
+    moveHoldDelay = window.setTimeout(() => {
+      moveHoldInterval = window.setInterval(move, 115);
+    }, 280);
+  });
+  for (const eventName of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    button.addEventListener(eventName, stopHeldMove);
+  }
+});
+window.addEventListener("blur", stopHeldMove);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopHeldMove();
+});
 
 const continueButton = document.querySelector<HTMLButtonElement>("#continue-game")!;
 continueButton.disabled = !store.hasSave();

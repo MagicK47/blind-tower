@@ -1,8 +1,6 @@
 export const MAP_SIZE = 11;
 
 export type DoorColor = "yellow" | "blue" | "red";
-export type MotionPattern = "drift" | "hop" | "dash" | "orbit" | "feint" | "teleport" | "spiral";
-export type ShapeType = "circle" | "line" | "arc" | "ring";
 
 export interface Point {
   x: number;
@@ -29,12 +27,7 @@ export interface MonsterDef {
   defense: number;
   gold: number;
   exp: number;
-  size: number;
-  speed: number;
-  motion: MotionPattern;
-  movementScale?: number;
   trait: "none" | "armored" | "agile" | "thorns" | "regen" | "mirror" | "enraged";
-  note: string;
   boss?: boolean;
 }
 
@@ -43,15 +36,6 @@ export interface AbilityDef {
   name: string;
   shortName: string;
   sprite: number;
-  shape: ShapeType;
-  radius?: number;
-  length?: number;
-  width?: number;
-  angle?: number;
-  power: number;
-  armorPen: number;
-  focusCost: number;
-  combat: boolean;
   description: string;
 }
 
@@ -68,14 +52,8 @@ export interface TrialDef {
   name: string;
   sprite: number;
   tint: number;
-  size: number;
-  speed: number;
-  motion: MotionPattern;
-  movementScale?: number;
-  abilityId: string;
   description: string;
   successText: string;
-  failureText: string;
 }
 
 export interface NpcDef {
@@ -154,7 +132,6 @@ export interface PlayerState extends Point {
   blueKeys: number;
   redKeys: number;
   insight: number;
-  focusMax: number;
   unlockedAbilities: string[];
   inventory: Record<string, number>;
 }
@@ -173,13 +150,20 @@ export interface SaveData {
 
 export type EncounterSource = MonsterEntity | TrialEntity;
 
+export interface CombatForecast {
+  canDamage: boolean;
+  canSurvive: boolean;
+  heroDamage: number;
+  enemyDamage: number;
+  rounds: number;
+  totalDamage: number;
+}
+
 export interface CombatSession {
   mode: "combat" | "trial";
   source: EncounterSource;
   monster?: MonsterDef;
   trial?: TrialDef;
-  hp: number;
-  maxHp: number;
-  focus: number;
-  turn: number;
+  forecast?: CombatForecast;
+  trialCost?: number;
 }

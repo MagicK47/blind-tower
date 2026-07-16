@@ -1,7 +1,8 @@
-import { ABILITIES, ITEMS, MONSTERS, NPCS, TRIALS } from "./content";
+import { ITEMS, MONSTERS, NPCS, TRIALS } from "./content";
 import { FLOORS } from "./floors";
 import type {
   CombatSession,
+  CombatForecast,
   FloorData,
   FloorEntity,
   MonsterEntity,
@@ -41,7 +42,6 @@ function initialPlayer(): PlayerState {
     blueKeys: 0,
     redKeys: 0,
     insight: 0,
-    focusMax: 2,
     unlockedAbilities: ["sword", "spear"],
     inventory: { bomb: 0, holyWater: 0, shopPurchases: 0 },
   };
@@ -55,7 +55,7 @@ function initialSave(): SaveData {
     visitedFloors: [1],
     npcFlags: [],
     defeatedMonsters: {},
-    log: ["你在遗忘墓道醒来。方向键或 WASD 移动，靠近目标即可互动。"],
+    log: ["你在遗忘墓道醒来。按格探索，先核对战损，再决定路线。"],
     playSeconds: 0,
     ending: false,
   };
@@ -249,25 +249,33 @@ export class GameStore {
   openEncounter(source: MonsterEntity | TrialEntity): void {
     if (source.kind === "monster") {
       const monster = MONSTERS[source.monsterId];
+      const forecast = this.fightForecast(monster.id);
+      if (!forecast.canDamage) {
+        this.toast(`${monster.name} 的防御高于你的攻击，当前无法破防。`, "danger");
+        return;
+      }
+      if (!forecast.canSurvive) {
+        this.toast(`预计损失 ${forecast.totalDamage} 生命，当前生命不足。`, "danger");
+        return;
+      }
       this.activeEncounter = {
         mode: "combat",
         source,
         monster,
-        hp: monster.hp,
-        maxHp: monster.hp,
-        focus: this.player.focusMax,
-        turn: 1,
+        forecast,
       };
     } else {
       const trial = TRIALS[source.trialId];
+      const trialCost = this.trialCost();
+      if (trialCost >= this.player.hp) {
+        this.toast(`机关需要承受 ${trialCost} 点代价，当前生命不足。`, "danger");
+        return;
+      }
       this.activeEncounter = {
         mode: "trial",
         source,
         trial,
-        hp: 1,
-        maxHp: 1,
-        focus: 0,
-        turn: 1,
+        trialCost,
       };
     }
     this.emit({ type: "encounter", session: this.activeEncounter });
@@ -278,92 +286,50 @@ export class GameStore {
     this.emit({ type: "state" });
   }
 
-  spendFocus(amount: number): boolean {
-    if (!this.activeEncounter || this.activeEncounter.focus < amount) return false;
-    this.activeEncounter.focus -= amount;
-    this.emit({ type: "state" });
-    return true;
-  }
-
-  damageMonster(abilityId: string, weakpoint: boolean): { damage: number; defeated: boolean; reflected: number } {
+  resolveClassicCombat(): void {
     const session = this.activeEncounter;
-    if (!session?.monster) return { damage: 0, defeated: false, reflected: 0 };
-    const ability = ABILITIES[abilityId];
-    const monster = session.monster;
-    const effectiveDefense = monster.defense * (1 - ability.armorPen);
-    const criticalMultiplier = weakpoint ? 1.65 : 1;
-    const damage = Math.max(1, Math.round((this.player.attack * ability.power - effectiveDefense) * criticalMultiplier));
-    session.hp = Math.max(0, session.hp - damage);
-    let reflected = 0;
-    if (monster.trait === "thorns") {
-      reflected = Math.max(1, Math.round(monster.attack * 0.08));
-      this.player.hp = Math.max(0, this.player.hp - reflected);
+    if (!session?.monster || session.source.kind !== "monster") return;
+    const forecast = this.fightForecast(session.monster.id);
+    if (!forecast.canDamage || !forecast.canSurvive) {
+      this.closeEncounter();
+      return;
     }
-    this.emit({ type: "state" });
-    return { damage, defeated: session.hp <= 0, reflected };
-  }
 
-  missMonster(): number {
-    const session = this.activeEncounter;
-    if (!session?.monster) return 0;
-    if (session.monster.trait === "regen") session.hp = Math.min(session.maxHp, session.hp + Math.ceil(session.maxHp * 0.08));
-    session.turn += 1;
-    this.emit({ type: "state" });
-    return session.hp;
-  }
-
-  enemyCounter(): number {
-    const session = this.activeEncounter;
-    if (!session?.monster) return 0;
-    const damage = Math.max(1, session.monster.attack - this.player.defense);
-    this.player.hp = Math.max(0, this.player.hp - damage);
-    session.turn += 1;
-    this.emit({ type: "state" });
-    if (this.player.hp <= 0) {
-      this.activeEncounter = null;
-      this.emit({ type: "defeat" });
-    }
-    return damage;
-  }
-
-  resolveEncounterSuccess(): void {
-    const session = this.activeEncounter;
-    if (!session) return;
     const source = session.source;
     this.consume(source);
-
-    if (source.kind === "monster" && session.monster) {
-      const monster = session.monster;
-      this.player.gold += monster.gold;
-      this.gainExp(monster.exp);
-      this.data.defeatedMonsters[monster.id] = (this.data.defeatedMonsters[monster.id] ?? 0) + 1;
-      this.log(`击败 ${monster.name}，获得 ${monster.gold} 金币与 ${monster.exp} 经验。`);
-      this.activeEncounter = null;
-      if (source.monsterId === "boss_50") {
-        this.data.ending = true;
-        this.save();
-        this.emit({ type: "ending" });
-        return;
-      }
-    } else if (source.kind === "trial" && session.trial) {
-      this.applyItem(source.rewardId, source.amount ?? 1);
-      this.log(session.trial.successText);
-      this.activeEncounter = null;
+    const monster = session.monster;
+    this.player.hp -= forecast.totalDamage;
+    this.player.gold += monster.gold;
+    this.gainExp(monster.exp);
+    this.data.defeatedMonsters[monster.id] = (this.data.defeatedMonsters[monster.id] ?? 0) + 1;
+    this.log(`击败 ${monster.name}，损失 ${forecast.totalDamage} 生命，获得 ${monster.gold} 金币与 ${monster.exp} 经验。`);
+    this.activeEncounter = null;
+    if (source.monsterId === "boss_50") {
+      this.data.ending = true;
+      this.save();
+      this.emit({ type: "ending" });
+      return;
     }
-
     this.save();
     this.emit({ type: "state" });
   }
 
-  trialFailure(): number {
+  resolveTrial(): void {
     const session = this.activeEncounter;
-    if (!session?.trial) return 0;
-    const damage = Math.max(5, Math.round(this.player.maxHp * 0.015));
-    this.player.hp = Math.max(1, this.player.hp - damage);
-    session.turn += 1;
-    this.log(`${session.trial.failureText} 机关反噬 ${damage} 点生命。`);
+    if (!session?.trial || session.source.kind !== "trial") return;
+    const cost = session.trialCost ?? this.trialCost();
+    if (cost >= this.player.hp) {
+      this.closeEncounter();
+      return;
+    }
+    const source = session.source;
+    this.player.hp -= cost;
+    this.consume(source);
+    this.activeEncounter = null;
+    this.applyItem(source.rewardId, source.amount ?? 1);
+    this.log(`${session.trial.successText}${cost ? ` 付出 ${cost} 点生命。` : " 洞察让你避开了全部代价。"}`);
+    this.save();
     this.emit({ type: "state" });
-    return damage;
   }
 
   private gainExp(amount: number): void {
@@ -377,7 +343,7 @@ export class GameStore {
       this.player.attack += 3;
       this.player.defense += 2;
       if (this.player.level % 3 === 0) this.player.insight += 1;
-      this.toast(`等级提升至 ${this.player.level}：生命、攻击、防御与距离感增强。`, "reward");
+      this.toast(`等级提升至 ${this.player.level}：生命、攻击与防御永久提升。`, "reward");
       threshold = this.player.level * 45;
     }
   }
@@ -395,11 +361,19 @@ export class GameStore {
       case "sapphire": this.player.defense += 3 * amount; break;
       case "coinBag": this.player.gold += amount; break;
       case "insight": this.player.insight += amount; break;
-      case "axeRelic": this.unlockAbility("axe"); break;
-      case "hammerRelic": this.unlockAbility("hammer"); break;
+      case "axeRelic":
+        this.player.attack += 8 * amount;
+        this.unlockAbility("axe");
+        break;
+      case "hammerRelic":
+        this.player.defense += 8 * amount;
+        this.unlockAbility("hammer");
+        break;
       case "flameRelic":
         this.unlockAbility("flame");
-        this.player.focusMax += 1;
+        this.player.attack += 6 * amount;
+        this.player.maxHp += 180 * amount;
+        this.player.hp += 180 * amount;
         break;
       case "bomb":
       case "holyWater":
@@ -478,19 +452,31 @@ export class GameStore {
       this.player.hp += 260;
     }
     if (upgrade === "insight") this.player.insight += 1;
-    this.toast(`商人完成了${upgrade === "attack" ? "武器淬炼" : upgrade === "defense" ? "护甲加固" : upgrade === "health" ? "生命祝福" : "盲感训练"}。`, "reward");
+    this.toast(`商人完成了${upgrade === "attack" ? "武器淬炼" : upgrade === "defense" ? "护甲加固" : upgrade === "health" ? "生命祝福" : "机关研习"}。`, "reward");
     this.save();
     this.emit({ type: "state" });
     return true;
   }
 
-  perfectFightEstimate(monsterId: string): { rounds: number; damage: number } {
+  fightForecast(monsterId: string): CombatForecast {
     const monster = MONSTERS[monsterId];
-    const ability = ABILITIES.sword;
-    const perHit = Math.max(1, Math.round(this.player.attack * ability.power - monster.defense));
-    const rounds = Math.ceil(monster.hp / perHit);
-    const counter = Math.max(1, monster.attack - this.player.defense);
-    return { rounds, damage: Math.max(0, rounds - 1) * counter };
+    const heroDamage = this.player.attack - monster.defense;
+    const canDamage = heroDamage > 0;
+    const rounds = canDamage ? Math.ceil(monster.hp / heroDamage) : 0;
+    const enemyDamage = Math.max(0, monster.attack - this.player.defense);
+    const totalDamage = canDamage ? Math.max(0, rounds - 1) * enemyDamage : 0;
+    return {
+      canDamage,
+      canSurvive: canDamage && totalDamage < this.player.hp,
+      heroDamage: Math.max(0, heroDamage),
+      enemyDamage,
+      rounds,
+      totalDamage,
+    };
+  }
+
+  trialCost(): number {
+    return Math.max(0, 10 + this.player.floor * 2 - this.player.insight * 8);
   }
 
   debugJump(floorNumber: number): void {
@@ -512,7 +498,7 @@ export class GameStore {
     this.player.yellowKeys += 99;
     this.player.blueKeys += 99;
     this.player.redKeys += 99;
-    this.player.unlockedAbilities = Object.values(ABILITIES).filter((ability) => ability.combat).map((ability) => ability.id);
+    this.player.unlockedAbilities = ["sword", "spear", "axe", "hammer", "flame"];
     this.emit({ type: "state" });
   }
 

@@ -137,7 +137,7 @@ export interface PlayerState extends Point {
 }
 
 export interface SaveData {
-  version: 1;
+  version: 2;
   player: PlayerState;
   consumed: Record<string, string[]>;
   visitedFloors: number[];

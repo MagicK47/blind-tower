@@ -1,0 +1,40 @@
+export const BALANCE = {
+  saveVersion: 2,
+  player: {
+    initialHp: 800,
+    initialAttack: 18,
+    initialDefense: 10,
+  },
+  levelUp: {
+    maxHp: 80,
+    attack: 2,
+    defense: 1,
+    insightEvery: 3,
+  },
+  items: {
+    smallPotion: 120,
+    largePotion: 360,
+    largePotionRatio: 0.3,
+    ruby: 3,
+    sapphire: 3,
+    axeRelic: 8,
+    hammerRelic: 8,
+    flameAttack: 6,
+    flameHp: 160,
+    holyWaterRatio: 0.35,
+  },
+  shop: {
+    stockPerShop: 3,
+    attack: 4,
+    defense: 4,
+    maxHp: 160,
+    basePrice: 26,
+    levelPrice: 16,
+    purchasePrice: 15,
+  },
+  trial: {
+    baseCost: 10,
+    floorCost: 2,
+    insightReduction: 8,
+  },
+} as const;

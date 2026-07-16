@@ -8,6 +8,7 @@ import { store, type GameEvent } from "./game/store";
 import type { MonsterEntity, NpcEntity, ShopEntity } from "./game/types";
 import { installAssetCssVariables, tileUrl } from "./game/assetUrl";
 import { gameAudio } from "./game/audio";
+import { BALANCE } from "./game/balance";
 
 installAssetCssVariables();
 
@@ -35,7 +36,7 @@ app.innerHTML = `
           <section class="hero-status">
             <div class="hero-portrait"><img src="${tileUrl(85)}" alt="勇者" /></div>
             <div class="hero-level"><span>无名攀登者</span><b id="player-level">Lv.1</b></div>
-            <div class="hp-block"><div><span>生命</span><strong id="hp-number">1000 / 1000</strong></div><div class="hud-bar"><i id="hp-bar"></i></div></div>
+            <div class="hp-block"><div><span>生命</span><strong id="hp-number">${BALANCE.player.initialHp} / ${BALANCE.player.initialHp}</strong></div><div class="hud-bar"><i id="hp-bar"></i></div></div>
             <div class="stat-grid">
               <span><small>攻击</small><b id="attack-number">18</b></span>
               <span><small>防御</small><b id="defense-number">10</b></span>
@@ -224,13 +225,14 @@ function openModal(title: string, kicker: string, content: string, className = "
 function openShop(entity: ShopEntity): void {
   const render = () => {
     const price = store.shopPrice(entity.level);
+    const stock = store.shopStock(entity.level);
     const modal = openModal("流浪商人的砧台", `第 ${store.player.floor} 层商店`, `
-      <div class="shop-intro"><img src="${tileUrl(97)}" alt="商人" /><p>“金币换成活下去的可能。每次购买后，下一次会更贵。”</p><b>持有 ${store.player.gold} 金币</b></div>
+      <div class="shop-intro"><img src="${tileUrl(97)}" alt="商人" /><p>“每段塔层只锻造三次。把机会花在真正缺少的属性上。”</p><b>持有 ${store.player.gold} 金币 · 剩余强化 ${stock}/${BALANCE.shop.stockPerShop}</b></div>
       <div class="shop-grid">
-        <button type="button" data-upgrade="attack"><img src="${tileUrl(104)}" alt="" /><span><b>武器淬炼</b><small>攻击 +5</small></span><em>${price} 金</em></button>
-        <button type="button" data-upgrade="defense"><img src="${tileUrl(102)}" alt="" /><span><b>护甲加固</b><small>防御 +5</small></span><em>${price} 金</em></button>
-        <button type="button" data-upgrade="health"><img src="${tileUrl(114)}" alt="" /><span><b>生命祝福</b><small>最大生命 +260</small></span><em>${price} 金</em></button>
-        <button type="button" data-upgrade="insight"><img src="${tileUrl(56)}" alt="" /><span><b>机关研习</b><small>洞察 +1</small></span><em>${price} 金</em></button>
+        <button type="button" data-upgrade="attack" ${stock ? "" : "disabled"}><img src="${tileUrl(104)}" alt="" /><span><b>武器淬炼</b><small>攻击 +${BALANCE.shop.attack}</small></span><em>${stock ? `${price} 金` : "售罄"}</em></button>
+        <button type="button" data-upgrade="defense" ${stock ? "" : "disabled"}><img src="${tileUrl(102)}" alt="" /><span><b>护甲加固</b><small>防御 +${BALANCE.shop.defense}</small></span><em>${stock ? `${price} 金` : "售罄"}</em></button>
+        <button type="button" data-upgrade="health" ${stock ? "" : "disabled"}><img src="${tileUrl(114)}" alt="" /><span><b>生命祝福</b><small>最大生命 +${BALANCE.shop.maxHp}</small></span><em>${stock ? `${price} 金` : "售罄"}</em></button>
+        <button type="button" data-upgrade="insight" ${stock ? "" : "disabled"}><img src="${tileUrl(56)}" alt="" /><span><b>机关研习</b><small>洞察 +1</small></span><em>${stock ? `${price} 金` : "售罄"}</em></button>
       </div>`, "shop-modal");
     modal.querySelectorAll<HTMLButtonElement>("[data-upgrade]").forEach((button) => button.addEventListener("click", () => {
       if (store.buyUpgrade(entity.level, button.dataset.upgrade as "attack" | "defense" | "health" | "insight")) render();

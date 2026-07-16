@@ -1,6 +1,7 @@
 import { ITEMS, MONSTERS, NPCS, TRIALS } from "./content";
 import { FLOORS } from "./floors";
 import type { SoundId } from "./audio";
+import { BALANCE } from "./balance";
 import type {
   CombatSession,
   CombatForecast,
@@ -14,7 +15,7 @@ import type {
   TrialEntity,
 } from "./types";
 
-const SAVE_KEY = "blind-tower-save-v1";
+const SAVE_KEY = `blind-tower-save-v${BALANCE.saveVersion}`;
 
 export type GameEvent =
   | { type: "state" }
@@ -33,10 +34,10 @@ function initialPlayer(): PlayerState {
     floor: 1,
     x: FLOORS[0].start.x,
     y: FLOORS[0].start.y,
-    hp: 1000,
-    maxHp: 1000,
-    attack: 18,
-    defense: 10,
+    hp: BALANCE.player.initialHp,
+    maxHp: BALANCE.player.initialHp,
+    attack: BALANCE.player.initialAttack,
+    defense: BALANCE.player.initialDefense,
     gold: 0,
     exp: 0,
     level: 1,
@@ -51,7 +52,7 @@ function initialPlayer(): PlayerState {
 
 function initialSave(): SaveData {
   return {
-    version: 1,
+    version: BALANCE.saveVersion,
     player: initialPlayer(),
     consumed: {},
     visitedFloors: [1],
@@ -117,7 +118,7 @@ export class GameStore {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw) as SaveData;
-      if (parsed.version !== 1 || !parsed.player) return false;
+      if (parsed.version !== BALANCE.saveVersion || !parsed.player) return false;
       this.data = parsed;
       this.activeEncounter = null;
       this.emit({ type: "state" });
@@ -351,11 +352,11 @@ export class GameStore {
     while (this.player.exp >= threshold) {
       this.player.exp -= threshold;
       this.player.level += 1;
-      this.player.maxHp += 120;
-      this.player.hp += 120;
-      this.player.attack += 3;
-      this.player.defense += 2;
-      if (this.player.level % 3 === 0) this.player.insight += 1;
+      this.player.maxHp += BALANCE.levelUp.maxHp;
+      this.player.hp += BALANCE.levelUp.maxHp;
+      this.player.attack += BALANCE.levelUp.attack;
+      this.player.defense += BALANCE.levelUp.defense;
+      if (this.player.level % BALANCE.levelUp.insightEvery === 0) this.player.insight += 1;
       this.sound("levelUp");
       this.toast(`等级提升至 ${this.player.level}：生命、攻击与防御永久提升。`, "reward");
       threshold = this.player.level * 45;
@@ -369,25 +370,29 @@ export class GameStore {
       case "yellowKey": this.player.yellowKeys += amount; break;
       case "blueKey": this.player.blueKeys += amount; break;
       case "redKey": this.player.redKeys += amount; break;
-      case "smallPotion": this.player.hp = Math.min(this.player.maxHp, this.player.hp + 160 * amount); break;
-      case "largePotion": this.player.hp = Math.min(this.player.maxHp, this.player.hp + 520 * amount); break;
-      case "ruby": this.player.attack += 3 * amount; break;
-      case "sapphire": this.player.defense += 3 * amount; break;
+      case "smallPotion": this.player.hp = Math.min(this.player.maxHp, this.player.hp + BALANCE.items.smallPotion * amount); break;
+      case "largePotion": {
+        const healing = Math.max(BALANCE.items.largePotion, Math.round(this.player.maxHp * BALANCE.items.largePotionRatio));
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healing * amount);
+        break;
+      }
+      case "ruby": this.player.attack += BALANCE.items.ruby * amount; break;
+      case "sapphire": this.player.defense += BALANCE.items.sapphire * amount; break;
       case "coinBag": this.player.gold += amount; break;
       case "insight": this.player.insight += amount; break;
       case "axeRelic":
-        this.player.attack += 8 * amount;
+        this.player.attack += BALANCE.items.axeRelic * amount;
         this.unlockAbility("axe");
         break;
       case "hammerRelic":
-        this.player.defense += 8 * amount;
+        this.player.defense += BALANCE.items.hammerRelic * amount;
         this.unlockAbility("hammer");
         break;
       case "flameRelic":
         this.unlockAbility("flame");
-        this.player.attack += 6 * amount;
-        this.player.maxHp += 180 * amount;
-        this.player.hp += 180 * amount;
+        this.player.attack += BALANCE.items.flameAttack * amount;
+        this.player.maxHp += BALANCE.items.flameHp * amount;
+        this.player.hp += BALANCE.items.flameHp * amount;
         break;
       case "bomb":
       case "holyWater":
@@ -418,7 +423,7 @@ export class GameStore {
         return false;
       }
       this.player.inventory.holyWater -= 1;
-      const heal = Math.round(this.player.maxHp * 0.35);
+      const heal = Math.round(this.player.maxHp * BALANCE.items.holyWaterRatio);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
       this.sound("heal");
       this.toast(`圣水恢复 ${heal} 点生命。`, "reward");
@@ -454,10 +459,19 @@ export class GameStore {
   }
 
   shopPrice(level: number): number {
-    return 26 + level * 16 + (this.player.inventory.shopPurchases ?? 0) * 9;
+    return BALANCE.shop.basePrice + level * BALANCE.shop.levelPrice + (this.player.inventory.shopPurchases ?? 0) * BALANCE.shop.purchasePrice;
+  }
+
+  shopStock(level: number): number {
+    return Math.max(0, BALANCE.shop.stockPerShop - (this.player.inventory[`shop-${level}-purchases`] ?? 0));
   }
 
   buyUpgrade(level: number, upgrade: "attack" | "defense" | "health" | "insight"): boolean {
+    if (this.shopStock(level) <= 0) {
+      this.sound("blocked");
+      this.toast("这处商店本段的强化次数已经用尽。", "normal");
+      return false;
+    }
     const price = this.shopPrice(level);
     if (this.player.gold < price) {
       this.sound("blocked");
@@ -466,11 +480,12 @@ export class GameStore {
     }
     this.player.gold -= price;
     this.player.inventory.shopPurchases = (this.player.inventory.shopPurchases ?? 0) + 1;
-    if (upgrade === "attack") this.player.attack += 5;
-    if (upgrade === "defense") this.player.defense += 5;
+    this.player.inventory[`shop-${level}-purchases`] = (this.player.inventory[`shop-${level}-purchases`] ?? 0) + 1;
+    if (upgrade === "attack") this.player.attack += BALANCE.shop.attack;
+    if (upgrade === "defense") this.player.defense += BALANCE.shop.defense;
     if (upgrade === "health") {
-      this.player.maxHp += 260;
-      this.player.hp += 260;
+      this.player.maxHp += BALANCE.shop.maxHp;
+      this.player.hp += BALANCE.shop.maxHp;
     }
     if (upgrade === "insight") this.player.insight += 1;
     this.sound("levelUp");
@@ -498,7 +513,7 @@ export class GameStore {
   }
 
   trialCost(): number {
-    return Math.max(0, 10 + this.player.floor * 2 - this.player.insight * 8);
+    return Math.max(0, BALANCE.trial.baseCost + this.player.floor * BALANCE.trial.floorCost - this.player.insight * BALANCE.trial.insightReduction);
   }
 
   debugJump(floorNumber: number): void {

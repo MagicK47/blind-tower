@@ -202,28 +202,31 @@ export function generateFloor(floor: number): FloorData {
   }
 
   const pool = MONSTER_POOLS[themeIndex];
-  const guardianPoint = chooseAt(path, floor % 10 === 0 ? 0.9 : 0.78);
+  const chapterFloor = ((floor - 1) % 5) + 1;
+  const guardianTier = chapterFloor <= 2 ? 0 : chapterFloor === 3 ? 1 : 2;
+  const guardianPoint = chooseAt(path, chapterFloor === 5 ? 0.9 : 0.78);
   add({
     id: `f${floor}-guardian`,
     kind: "monster",
-    monsterId: BOSS_BY_FLOOR[floor] ?? pool[(floor + 1) % pool.length],
+    monsterId: BOSS_BY_FLOOR[floor] ?? pool[guardianTier],
     ...guardianPoint,
   });
 
-  const sideMonsterCount = 3 + (floor % 3);
+  const sideMonsterCount = floor === 50 ? 2 : 3 + Math.floor((chapterFloor - 1) / 2);
   for (let i = 0; i < sideMonsterCount; i += 1) {
-    addAtFree((point) => ({ id: `f${floor}-monster-${i}`, kind: "monster", monsterId: pool[(floor + i) % pool.length], ...point }));
+    const sideTier = Math.min(2, Math.max(0, guardianTier - 1 + (i % 2)));
+    addAtFree((point) => ({ id: `f${floor}-monster-${i}`, kind: "monster", monsterId: pool[sideTier], ...point }));
   }
 
   const itemCycle = ["smallPotion", "ruby", "yellowKey", "sapphire", "coinBag", "smallPotion", "blueKey"];
-  const itemCount = 4 + (floor % 2);
+  const itemCount = 3 + (floor % 2);
   for (let i = 0; i < itemCount; i += 1) {
     const itemId = itemCycle[(floor + i * 2) % itemCycle.length];
     const amount = itemId === "coinBag" ? 12 + floor * 2 : undefined;
     addAtFree((point) => ({ id: `f${floor}-item-${i}`, kind: "item", itemId, amount, ...point }));
   }
 
-  if (floor % 7 === 0 || floor % 10 === 0) {
+  if (floor % 7 === 0 || chapterFloor === 5) {
     addAtFree((point) => ({ id: `f${floor}-large-potion`, kind: "item", itemId: "largePotion", ...point }));
   }
 
@@ -250,13 +253,12 @@ export function generateFloor(floor: number): FloorData {
     }));
   }
 
-  const chapterFloor = ((floor - 1) % 5) + 1;
   const objective = floor === 50
     ? "击败失明之王，夺回被抹去的名字。"
     : floor % 10 === 0
       ? "取得猩红钥匙，开启王门并击败本段守主。"
       : chapterFloor === 5
-        ? "寻找商人整备，然后前往下一段塔层。"
+        ? "寻找商人完成本段整备，并击败通往下一段的封印守卫。"
         : "收集资源，权衡支路消耗，并找到上行阶梯。";
 
   return {

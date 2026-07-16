@@ -1,4 +1,5 @@
 import type { AbilityDef, ItemDef, MonsterDef, NpcDef, ThemeDef, TrialDef } from "./types";
+import { BALANCE } from "./balance";
 
 export const THEMES: ThemeDef[] = [
   { id: "crypt", name: "遗忘墓道", subtitle: "石缝里仍有旧日火光", floorTint: 0x8793a5, wallTint: 0x5d6676, accent: "#d2b276", fog: "rgba(32, 39, 52, .48)" },
@@ -27,15 +28,15 @@ export const ITEMS: Record<string, ItemDef> = {
   yellowKey: { id: "yellowKey", name: "黄铜钥匙", sprite: 125, tint: 0xffd16a, description: "开启一扇黄门。" },
   blueKey: { id: "blueKey", name: "蔚蓝钥匙", sprite: 128, tint: 0x8dc8ff, description: "开启一扇蓝门。" },
   redKey: { id: "redKey", name: "猩红钥匙", sprite: 127, tint: 0xff7474, description: "开启一扇红门。" },
-  smallPotion: { id: "smallPotion", name: "微光药剂", sprite: 113, description: "恢复 160 点生命。" },
-  largePotion: { id: "largePotion", name: "高塔圣水", sprite: 116, description: "恢复 520 点生命。" },
+  smallPotion: { id: "smallPotion", name: "微光药剂", sprite: 113, description: `恢复 ${BALANCE.items.smallPotion} 点生命。` },
+  largePotion: { id: "largePotion", name: "高塔圣水", sprite: 116, description: `恢复 ${BALANCE.items.largePotion} 点生命，或最大生命的 ${BALANCE.items.largePotionRatio * 100}%，取较高值。` },
   ruby: { id: "ruby", name: "力量红晶", sprite: 101, tint: 0xff6f62, description: "攻击永久 +3。" },
   sapphire: { id: "sapphire", name: "守护蓝晶", sprite: 102, tint: 0x77baff, description: "防御永久 +3。" },
   coinBag: { id: "coinBag", name: "旧王金币", sprite: 101, tint: 0xffd66b, description: "获得金币。" },
   insight: { id: "insight", name: "记忆尘晶", sprite: 56, tint: 0xc6a6ff, description: "洞察永久 +1，每点洞察使塔中机关的生命代价降低 8。" },
   axeRelic: { id: "axeRelic", name: "断柄战斧", sprite: 118, description: "攻击永久 +8。" },
   hammerRelic: { id: "hammerRelic", name: "沉星锤头", sprite: 117, description: "防御永久 +8。" },
-  flameRelic: { id: "flameRelic", name: "烬火残页", sprite: 129, description: "攻击永久 +6，最大生命与当前生命 +180。" },
+  flameRelic: { id: "flameRelic", name: "烬火残页", sprite: 129, description: `攻击永久 +${BALANCE.items.flameAttack}，最大生命与当前生命 +${BALANCE.items.flameHp}。` },
   bomb: { id: "bomb", name: "裂墙火药", sprite: 110, description: "在背包中使用，清除相邻的普通怪物。" },
   holyWater: { id: "holyWater", name: "回生圣水", sprite: 114, description: "在背包中使用，恢复 35% 最大生命。" },
 };
@@ -79,15 +80,21 @@ export const MONSTERS: Record<string, MonsterDef> = Object.fromEntries([
   monster({ id: "void_wraith", name: "虚空残响", sprite: 121, tint: 0x85a5e8, hp: 690, attack: 201, defense: 89, gold: 118, exp: 98, trait: "regen" }),
   monster({ id: "crown_scorpion", name: "冠冕星蝎", sprite: 122, tint: 0xe4c6ff, hp: 744, attack: 212, defense: 94, gold: 124, exp: 104, trait: "thorns" }),
 
-  monster({ id: "throne_knight", name: "王座黑骑", sprite: 96, tint: 0xd9bd77, hp: 920, attack: 224, defense: 116, gold: 135, exp: 112, trait: "armored" }),
-  monster({ id: "crown_mimic", name: "伪冠吞噬者", sprite: 92, tint: 0xe0b55f, hp: 836, attack: 238, defense: 102, gold: 148, exp: 120, trait: "enraged" }),
-  monster({ id: "nameless_king", name: "无名王影", sprite: 110, tint: 0xe8c87a, hp: 1020, attack: 252, defense: 124, gold: 160, exp: 132, trait: "mirror" }),
+  monster({ id: "throne_knight", name: "王座黑骑", sprite: 96, tint: 0xd9bd77, hp: 860, attack: 215, defense: 112, gold: 135, exp: 112, trait: "armored" }),
+  monster({ id: "crown_mimic", name: "伪冠吞噬者", sprite: 92, tint: 0xe0b55f, hp: 800, attack: 226, defense: 100, gold: 148, exp: 120, trait: "enraged" }),
+  monster({ id: "nameless_king", name: "无名王影", sprite: 110, tint: 0xe8c87a, hp: 960, attack: 238, defense: 118, gold: 160, exp: 132, trait: "mirror" }),
+
+  monster({ id: "seal_5", name: "五层封印兽·石喉", sprite: 120, tint: 0xd7b477, hp: 170, attack: 31, defense: 10, gold: 48, exp: 36, trait: "armored", boss: true }),
+  monster({ id: "seal_15", name: "十五层熔炉监工", sprite: 96, tint: 0xf0a45f, hp: 650, attack: 95, defense: 42, gold: 120, exp: 92, trait: "enraged", boss: true }),
+  monster({ id: "seal_25", name: "二十五层烬甲统领", sprite: 98, tint: 0xff8068, hp: 1050, attack: 140, defense: 68, gold: 210, exp: 158, trait: "armored", boss: true }),
+  monster({ id: "seal_35", name: "三十五层风蚀执政", sprite: 112, tint: 0xd1e1c7, hp: 1450, attack: 179, defense: 94, gold: 320, exp: 245, trait: "agile", boss: true }),
+  monster({ id: "seal_45", name: "四十五层星冠裁决", sprite: 97, tint: 0xa9c9ff, hp: 1900, attack: 220, defense: 120, gold: 470, exp: 360, trait: "mirror", boss: true }),
 
   monster({ id: "boss_10", name: "十层守门人·铁誓", sprite: 96, tint: 0xeab36f, hp: 460, attack: 64, defense: 28, gold: 80, exp: 70, trait: "armored", boss: true }),
   monster({ id: "boss_20", name: "二十层主祭·溺月", sprite: 84, tint: 0x8de4ee, hp: 780, attack: 112, defense: 55, gold: 150, exp: 120, trait: "regen", boss: true }),
   monster({ id: "boss_30", name: "三十层刑官·焚脊", sprite: 110, tint: 0xff674f, hp: 1260, attack: 164, defense: 82, gold: 230, exp: 190, trait: "enraged", boss: true }),
-  monster({ id: "boss_40", name: "四十层镜卫·无面", sprite: 97, tint: 0xf3a4c3, hp: 1820, attack: 218, defense: 110, gold: 340, exp: 280, trait: "mirror", boss: true }),
-  monster({ id: "boss_50", name: "失明之王·阿尔德", sprite: 110, tint: 0xf4d27a, hp: 2800, attack: 286, defense: 142, gold: 999, exp: 999, trait: "mirror", boss: true }),
+  monster({ id: "boss_40", name: "四十层镜卫·无面", sprite: 97, tint: 0xf3a4c3, hp: 1650, attack: 200, defense: 106, gold: 340, exp: 280, trait: "mirror", boss: true }),
+  monster({ id: "boss_50", name: "失明之王·阿尔德", sprite: 110, tint: 0xf4d27a, hp: 2200, attack: 240, defense: 128, gold: 999, exp: 999, trait: "mirror", boss: true }),
 ].map((entry) => [entry.id, entry]));
 
 export const TRIALS: Record<string, TrialDef> = {
@@ -119,9 +126,14 @@ export const MONSTER_POOLS: string[][] = [
 ];
 
 export const BOSS_BY_FLOOR: Record<number, string> = {
+  5: "seal_5",
   10: "boss_10",
+  15: "seal_15",
   20: "boss_20",
+  25: "seal_25",
   30: "boss_30",
+  35: "seal_35",
   40: "boss_40",
+  45: "seal_45",
   50: "boss_50",
 };

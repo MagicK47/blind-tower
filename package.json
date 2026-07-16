@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "balance": "node scripts/run-balance.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
     "typescript": "^5.8.3",
     "vite": "^7.0.0"
   }

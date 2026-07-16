@@ -7,6 +7,7 @@ import { SCENE_SIZE, TowerScene } from "./game/TowerScene";
 import { store, type GameEvent } from "./game/store";
 import type { MonsterEntity, NpcEntity, ShopEntity } from "./game/types";
 import { installAssetCssVariables, tileUrl } from "./game/assetUrl";
+import { gameAudio } from "./game/audio";
 
 installAssetCssVariables();
 
@@ -18,6 +19,7 @@ app.innerHTML = `
         <div class="brand-mark"><img src="${tileUrl(56)}" alt="" /><span><b>失明王座</b><small>经典魔塔 · 50 层</small></span></div>
         <div class="floor-heading"><strong id="floor-number">第 1 层</strong><span id="floor-name">遗忘墓道</span></div>
         <div class="header-actions">
+          <button class="icon-button sound-toggle" id="toggle-sound" type="button" title="关闭声音" aria-label="关闭声音" aria-pressed="true"><span class="sound-icon" aria-hidden="true">♪</span></button>
           <button class="icon-button" id="quick-save" type="button" title="快速存档" aria-label="快速存档"><img src="${tileUrl(65)}" alt="" /></button>
           <button class="icon-button" id="open-help" type="button" title="玩法说明" aria-label="玩法说明">?</button>
         </div>
@@ -76,7 +78,7 @@ app.innerHTML = `
         </div>
         <button type="button" id="use-bomb" aria-label="使用裂墙火药" title="裂墙火药"><img src="${tileUrl(110)}" alt="" /><span><b>裂墙火药</b><small id="bomb-count">持有 0</small></span></button>
         <button type="button" id="use-water" aria-label="使用回生圣水" title="回生圣水"><img src="${tileUrl(114)}" alt="" /><span><b>回生圣水</b><small id="water-count">持有 0</small></span></button>
-        <div class="control-hint"><kbd>WASD</kbd><span>移动</span><kbd>接敌</kbd><span>自动结算</span></div>
+        <div class="control-hint"><kbd>WASD</kbd><span>移动</span><kbd>点击地图</kbd><span>走一步</span></div>
       </footer>
 
       <div id="combat-root"></div>
@@ -124,6 +126,7 @@ function setText(id: string, value: string | number): void {
 function renderHud(): void {
   const player = store.player;
   const floor = store.floor;
+  document.querySelector("#phaser-root")?.setAttribute("aria-label", `塔层地图，勇者位于第 ${player.x + 1} 列第 ${player.y + 1} 行`);
   setText("floor-number", `第 ${player.floor} 层`);
   setText("floor-name", floor.name);
   setText("theme-subtitle", floor.theme.subtitle);
@@ -279,7 +282,7 @@ function openBestiary(): void {
 function openHelp(): void {
   openModal("攀塔规则", "核心玩法", `
     <div class="help-grid">
-      <section><b>探索</b><p>方向键或 WASD 按格移动。钥匙开门，药剂、晶石与武具会立即生效。已经到达的楼层可用塔之罗盘往返。</p></section>
+      <section><b>探索</b><p>方向键或 WASD 按格移动。也可以点击地图：游戏会按点击位置相对勇者的主方向走一步。钥匙开门，药剂、晶石与武具会立即生效。</p></section>
       <section><b>战斗</b><p>勇者先手。每击伤害为“攻击减敌防”，敌人反击为“敌攻减勇者防”。最后一击结束战斗，敌人不会再反击。</p></section>
       <section><b>战损</b><p>靠近怪物即可看到准确战损。攻击不高于敌方防御时无法破防；预计战损足以致命时，接敌会被阻止。</p></section>
       <section><b>机关</b><p>机关会在确认前显示固定生命代价。洞察越高，代价越低；没有随机结果，也不需要拖动或长按。</p></section>
@@ -312,6 +315,7 @@ function handleEvent(event: GameEvent): void {
   if (event.type === "shop") openShop(event.entity);
   if (event.type === "dialog") openNpc(event.entity);
   if (event.type === "toast") showToast(event.message, event.tone);
+  if (event.type === "sound") gameAudio.play(event.sound);
   if (event.type === "defeat") showDefeat();
   if (event.type === "ending") showEnding();
 }
@@ -324,6 +328,25 @@ for (const eventName of ["contextmenu", "dragstart", "selectstart"]) {
   gameFrame.addEventListener(eventName, (event) => event.preventDefault());
 }
 gameFrame.querySelectorAll("img").forEach((image) => image.setAttribute("draggable", "false"));
+gameFrame.addEventListener("pointerdown", (event) => {
+  const button = (event.target as HTMLElement).closest("button");
+  if (button && !button.hasAttribute("data-move") && !button.disabled) gameAudio.play("ui");
+});
+
+const soundButton = document.querySelector<HTMLButtonElement>("#toggle-sound")!;
+const renderSoundButton = (): void => {
+  const enabled = gameAudio.isEnabled();
+  soundButton.classList.toggle("is-muted", !enabled);
+  soundButton.setAttribute("aria-pressed", String(enabled));
+  soundButton.title = enabled ? "关闭声音" : "开启声音";
+  soundButton.setAttribute("aria-label", soundButton.title);
+};
+soundButton.addEventListener("click", () => {
+  gameAudio.toggle();
+  renderSoundButton();
+});
+renderSoundButton();
+gameAudio.preload();
 
 document.querySelector("#quick-save")?.addEventListener("click", () => store.save(true));
 document.querySelector("#open-help")?.addEventListener("click", openHelp);
@@ -395,5 +418,6 @@ Object.assign(window as unknown as { __BLIND_TOWER__: unknown }, {
     grant: () => store.debugGrant(),
     validateFloors,
     snapshot: () => store.snapshot(),
+    audio: () => gameAudio.debugState(),
   },
 });

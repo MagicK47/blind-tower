@@ -1,5 +1,6 @@
 import { ITEMS } from "./content";
 import { tileUrl } from "./assetUrl";
+import { gameAudio } from "./audio";
 import { store } from "./store";
 import type { CombatForecast, CombatSession, MonsterDef } from "./types";
 
@@ -207,6 +208,7 @@ export class CombatView {
         this.flash(this.heroCard, "is-attacking");
         this.flash(this.targetCard, "is-hit");
         this.callout.textContent = `你造成 ${forecast.heroDamage} 点伤害`;
+        gameAudio.play("heroHit");
       });
       steps.push(() => {
         heroHp = Math.max(0, heroHp - forecast.enemyDamage);
@@ -214,6 +216,7 @@ export class CombatView {
         this.flash(this.targetCard, "is-attacking");
         this.flash(this.heroCard, "is-hit");
         this.callout.textContent = forecast.enemyDamage ? `${monster.name} 反击 ${forecast.enemyDamage}` : `${monster.name} 无法伤害你`;
+        if (forecast.enemyDamage) gameAudio.play("enemyHit");
       });
     }
 
@@ -227,6 +230,7 @@ export class CombatView {
         this.flash(this.heroCard, "is-clashing");
         this.flash(this.targetCard, "is-clashing");
         this.callout.textContent = `连续交锋 ×${hiddenExchanges}`;
+        gameAudio.play("heroHit");
       });
     }
 
@@ -236,6 +240,7 @@ export class CombatView {
       this.flash(this.heroCard, "is-attacking");
       this.flash(this.targetCard, "is-defeated");
       this.callout.textContent = `最后一击 · ${monster.name} 被击败`;
+      gameAudio.play("heroHit");
     });
 
     for (const step of steps) {
@@ -269,6 +274,7 @@ export class CombatView {
     this.targetCard.classList.add("is-defeated");
     this.overlay.classList.add("is-resolved");
     this.callout.textContent = `胜利 · 获得 ${monster.gold} 金币 / ${monster.exp} 经验`;
+    gameAudio.play("victory");
     this.actionButton.textContent = "结算中";
     this.actionButton.disabled = true;
     this.schedule(() => {

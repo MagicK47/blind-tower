@@ -42,6 +42,8 @@ export class TowerScene extends Phaser.Scene {
       if (key === "a" || key === "arrowleft") this.move(-1, 0);
       if (key === "d" || key === "arrowright") this.move(1, 0);
     });
+    this.input.setDefaultCursor("pointer");
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => this.handleMapPointer(pointer));
     this.unsubscribe = store.subscribe((event) => {
       if (event.type === "state") this.renderFloor();
     });
@@ -52,14 +54,21 @@ export class TowerScene extends Phaser.Scene {
   private move(dx: number, dy: number): void {
     if (!this.moveReady) return;
     this.moveReady = false;
-    const oldFloor = store.player.floor;
     const moved = store.tryMove(dx, dy);
-    if (moved && oldFloor === store.player.floor) this.soundStep();
     this.time.delayedCall(moved ? 90 : 55, () => { this.moveReady = true; });
   }
 
-  private soundStep(): void {
-    // Deliberately quiet for now; this boundary is ready for authored SFX.
+  private handleMapPointer(pointer: Phaser.Input.Pointer): void {
+    if (document.body.classList.contains("modal-open")) return;
+    const targetX = Math.floor((pointer.x - ORIGIN) / TILE_SIZE);
+    const targetY = Math.floor((pointer.y - ORIGIN) / TILE_SIZE);
+    if (targetX < 0 || targetY < 0 || targetX >= MAP_SIZE || targetY >= MAP_SIZE) return;
+
+    const dx = targetX - store.player.x;
+    const dy = targetY - store.player.y;
+    if (dx === 0 && dy === 0) return;
+    if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) this.move(Math.sign(dx), 0);
+    else this.move(0, Math.sign(dy));
   }
 
   private renderFloor(): void {
@@ -188,10 +197,6 @@ export class TowerScene extends Phaser.Scene {
     const sprite = this.add.image(x, y - 2, "tiny", frame);
     sprite.setDisplaySize(size, size).setTint(tint).setDepth(10);
     sprite.setInteractive({ useHandCursor: true });
-    sprite.on("pointerdown", () => {
-      if (document.body.classList.contains("modal-open")) return;
-      store.moveTowardTile(entity.x, entity.y);
-    });
     layer.add(sprite);
     if (bob) this.tweens.add({ targets: sprite, y: y - 5, duration: 680 + ((entity.x + entity.y) % 4) * 90, yoyo: true, repeat: -1, ease: "Sine.inOut" });
   }

@@ -1,5 +1,6 @@
 import { ITEMS, MONSTERS, NPCS, TRIALS } from "./content";
 import { FLOORS } from "./floors";
+import type { SoundId } from "./audio";
 import type {
   CombatSession,
   CombatForecast,
@@ -21,6 +22,7 @@ export type GameEvent =
   | { type: "shop"; entity: ShopEntity }
   | { type: "dialog"; entity: NpcEntity }
   | { type: "toast"; message: string; tone?: "normal" | "danger" | "reward" }
+  | { type: "sound"; sound: SoundId }
   | { type: "defeat" }
   | { type: "ending" };
 
@@ -170,6 +172,10 @@ export class GameStore {
     this.emit({ type: "toast", message, tone });
   }
 
+  private sound(sound: SoundId): void {
+    this.emit({ type: "sound", sound });
+  }
+
   tryMove(dx: number, dy: number): boolean {
     if (this.activeEncounter || this.data.ending) return false;
     const x = this.player.x + dx;
@@ -182,11 +188,13 @@ export class GameStore {
       if (entity.kind === "door") {
         const keyField = `${entity.color}Keys` as "yellowKeys" | "blueKeys" | "redKeys";
         if (this.player[keyField] <= 0) {
+          this.sound("blocked");
           this.toast(`${entity.color === "yellow" ? "黄" : entity.color === "blue" ? "蓝" : "红"}门紧锁，你没有对应钥匙。`, "danger");
           return false;
         }
         this.player[keyField] -= 1;
         this.consume(entity);
+        this.sound("door");
         this.toast("钥匙转动，门锁化作一阵尘光。", "reward");
       } else if (entity.kind === "monster" || entity.kind === "trial") {
         this.openEncounter(entity);
@@ -208,6 +216,7 @@ export class GameStore {
 
     this.player.x = x;
     this.player.y = y;
+    this.sound("step");
     this.emit({ type: "state" });
     return true;
   }
@@ -230,6 +239,7 @@ export class GameStore {
     if (!this.data.visitedFloors.includes(target)) this.data.visitedFloors.push(target);
     this.data.visitedFloors.sort((a, b) => a - b);
     this.log(`抵达第 ${target} 层：${floor.name}。`);
+    this.sound("floor");
     this.save();
     this.emit({ type: "state" });
     this.emit({ type: "toast", message: `第 ${target} 层 · ${floor.theme.name}`, tone: "reward" });
@@ -251,10 +261,12 @@ export class GameStore {
       const monster = MONSTERS[source.monsterId];
       const forecast = this.fightForecast(monster.id);
       if (!forecast.canDamage) {
+        this.sound("blocked");
         this.toast(`${monster.name} 的防御高于你的攻击，当前无法破防。`, "danger");
         return;
       }
       if (!forecast.canSurvive) {
+        this.sound("blocked");
         this.toast(`预计损失 ${forecast.totalDamage} 生命，当前生命不足。`, "danger");
         return;
       }
@@ -268,6 +280,7 @@ export class GameStore {
       const trial = TRIALS[source.trialId];
       const trialCost = this.trialCost();
       if (trialCost >= this.player.hp) {
+        this.sound("blocked");
         this.toast(`机关需要承受 ${trialCost} 点代价，当前生命不足。`, "danger");
         return;
       }
@@ -343,6 +356,7 @@ export class GameStore {
       this.player.attack += 3;
       this.player.defense += 2;
       if (this.player.level % 3 === 0) this.player.insight += 1;
+      this.sound("levelUp");
       this.toast(`等级提升至 ${this.player.level}：生命、攻击与防御永久提升。`, "reward");
       threshold = this.player.level * 45;
     }
@@ -380,6 +394,9 @@ export class GameStore {
         this.player.inventory[itemId] = (this.player.inventory[itemId] ?? 0) + amount;
         break;
     }
+    if (itemId === "coinBag") this.sound("coin");
+    else if (itemId === "smallPotion" || itemId === "largePotion") this.sound("heal");
+    else this.sound("pickup");
     this.toast(`获得 ${item.name}${amount > 1 ? ` ×${amount}` : ""}。`, "reward");
     this.emit({ type: "state" });
   }
@@ -390,6 +407,7 @@ export class GameStore {
 
   useInventory(itemId: "bomb" | "holyWater"): boolean {
     if ((this.player.inventory[itemId] ?? 0) <= 0) {
+      this.sound("blocked");
       this.toast("背包里没有这件物品。", "danger");
       return false;
     }
@@ -402,6 +420,7 @@ export class GameStore {
       this.player.inventory.holyWater -= 1;
       const heal = Math.round(this.player.maxHp * 0.35);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+      this.sound("heal");
       this.toast(`圣水恢复 ${heal} 点生命。`, "reward");
     } else {
       const monster = this.visibleEntities().find((entity): entity is MonsterEntity =>
@@ -415,6 +434,7 @@ export class GameStore {
       }
       this.player.inventory.bomb -= 1;
       this.consume(monster);
+      this.sound("blast");
       this.toast(`裂墙火药吞没了 ${MONSTERS[monster.monsterId].name}。`, "reward");
     }
 
@@ -440,6 +460,7 @@ export class GameStore {
   buyUpgrade(level: number, upgrade: "attack" | "defense" | "health" | "insight"): boolean {
     const price = this.shopPrice(level);
     if (this.player.gold < price) {
+      this.sound("blocked");
       this.toast(`需要 ${price} 金币。`, "danger");
       return false;
     }
@@ -452,6 +473,7 @@ export class GameStore {
       this.player.hp += 260;
     }
     if (upgrade === "insight") this.player.insight += 1;
+    this.sound("levelUp");
     this.toast(`商人完成了${upgrade === "attack" ? "武器淬炼" : upgrade === "defense" ? "护甲加固" : upgrade === "health" ? "生命祝福" : "机关研习"}。`, "reward");
     this.save();
     this.emit({ type: "state" });

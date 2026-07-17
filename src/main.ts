@@ -408,6 +408,17 @@ document.querySelector("#new-game")?.addEventListener("click", () => {
 });
 
 document.body.classList.add("modal-open");
+
+// Development-only launch hook for repeatable visual QA on any generated floor.
+const qaFloor = Number(new URLSearchParams(window.location.search).get("qaFloor"));
+if (import.meta.env.DEV && Number.isInteger(qaFloor) && qaFloor >= 1 && qaFloor <= 50) {
+  store.newGame();
+  store.debugGrant();
+  store.debugJump(qaFloor);
+  titleScreen.classList.add("is-hidden");
+  updateModalClass();
+}
+
 window.setInterval(() => store.addPlaySecond(), 1000);
 
 const floorProblems = validateFloors();

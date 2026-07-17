@@ -11,7 +11,7 @@
     <header class="hero">
       <img src="assets/book-background.png" alt="古书游戏底图" />
       <div class="hero-copy">
-        <span class="kicker">Living Design Document · v0.5 · 2026-07-16</span>
+        <span class="kicker">Living Design Document · v0.6 · 2026-07-17</span>
         <h1>失明王座</h1>
         <p>一款 50 层、固定地图、固定数值、无随机战斗的经典魔塔 RPG。乐趣来自路线规划、资源取舍与可计算的成长，而不是操作检定。</p>
       </div>
@@ -105,7 +105,7 @@
           <article><h3>高防低攻</h3><p>攻击门槛明显；一旦破防，提升少量攻击即可大幅减少回合数。</p><span>attack checkpoint</span></article>
           <article><h3>低攻高血</h3><p>检验防御是否已跨过无伤线，常用于守住可回收资源的支路。</p><span>defense checkpoint</span></article>
           <article><h3>首领</h3><p>仍使用同一公式，难度来自综合数值和前置资源规划，而非另设操作规则。</p><span>same rules / larger budget</span></article>
-          <article><h3>内容校验</h3><p>生成楼层时自动检查出生点、楼梯可达性、实体重叠和关键资源闭锁。</p><span>editor validation</span></article>
+          <article><h3>内容校验</h3><p>生成楼层时自动检查出生点、楼梯可达性、实体重叠、永久阻挡、门洞有效性和关键资源闭锁。</p><span>editor validation</span></article>
         </div>
       </section>
 
@@ -125,9 +125,23 @@
         </div>
       </section>
 
+      <section class="band">
+        <div class="section-title"><span>09</span><h2>关卡拓扑与生成约束</h2></div>
+        <div class="matrix">
+          <article><h3>候选布局</h3><p>每层以固定种子生成多个迷宫与小房间候选。只有具备足够主路门洞和安全支路容量的候选才会被接受；必要时减少房间开口，而不是放宽通关规则。</p></article>
+          <article><h3>门与守卫</h3><p>主线门必须位于只有两个相对出口的直通走廊，并且封住该格后入口无法抵达出口。守卫使用同一必经点规则，保证不能从房间边缘绕过。</p></article>
+          <article><h3>钥匙顺序</h3><p>黄钥匙位于黄门前；蓝钥匙位于黄门与蓝门之间；红钥匙位于上一扇主线门与红门之间。状态寻路从零钥匙开始模拟拾取与消耗，必须能抵达出口。</p></article>
+          <article><h3>永久交互对象</h3><p>NPC 与商店只放在主路之外的可接近支路。把所有永久对象同时视作墙后，入口到出口仍须连通，且每个对象至少有一个可站立的交互邻格。</p></article>
+          <article><h3>可选内容</h3><p>支路怪物与机关预留支路格，不允许候选耗尽后回退到主路；道具可以落在主路或支路，因为拾取后立即消失，不形成永久阻挡。</p></article>
+          <article><h3>三层测试门禁</h3><p>拓扑审计检查 50 层图结构；运行时测试用正式移动、开门、战斗与楼梯接口逐层通关；数值模拟继续验证四种探索策略。三者必须同时通过。</p></article>
+        </div>
+        <div class="formula"><code>门有效 = 移除门格后，入口与出口不连通</code></div>
+        <div class="formula"><code>永久对象安全 = 阻挡全部 NPC/商店后，主路仍连通且对象可从邻格交互</code></div>
+      </section>
+
       <section class="band split">
         <div>
-          <div class="section-title"><span>09</span><h2>数值平衡基线</h2></div>
+          <div class="section-title"><span>10</span><h2>数值平衡基线</h2></div>
           <p class="body-copy">难度增长以五层为最小预算单元。规划路线的段内总战损与关底战损都必须逐段上升；但生命、旧层药水、商店和消耗品共同提供至少一条可通关路线。模拟是回归护栏，不代替人工路线试玩。</p>
           <div class="formula"><code>规划路线关底战损：56 → 240 → 420 → 475 → 780 → 1156 → 1254 → 1302 → 1584 → 2160</code></div>
           <div class="formula"><code>规划路线五层总战损：139 → 470 → 551 → 667 → 1029 → 1486 → 2035 → 3341 → 5387 → 7139</code></div>
@@ -141,7 +155,7 @@
       </section>
 
       <section class="band">
-        <div class="section-title"><span>10</span><h2>界面与手机操作</h2></div>
+        <div class="section-title"><span>11</span><h2>界面与手机操作</h2></div>
         <div class="matrix">
           <article><h3>桌面布局</h3><p>中央方形地图、右侧完整属性与记录、底部工具栏。键盘方向键、WASD 与点击地图均可移动。</p></article>
           <article><h3>手机竖屏</h3><p>顶部只保留楼层与系统按钮；地图优先；属性与钥匙紧随地图；操作台固定在屏幕最下方。</p></article>
@@ -156,7 +170,7 @@
 
       <section class="band split">
         <div>
-          <div class="section-title"><span>11</span><h2>内容编辑器边界</h2></div>
+          <div class="section-title"><span>12</span><h2>内容编辑器边界</h2></div>
           <p class="body-copy">扩充内容时优先组合已有规则。新内容应该改变地图关系、数值阈值、资源回报和叙事语境，而不是为每个敌人写独立战斗脚本。</p>
         </div>
         <div class="effect-list">
@@ -169,9 +183,11 @@
       </section>
 
       <section class="band">
-        <div class="section-title"><span>12</span><h2>MVP 验收标准</h2></div>
+        <div class="section-title"><span>13</span><h2>MVP 验收标准</h2></div>
         <div class="checklist">
           <label><input type="checkbox" checked disabled /><span>50 层固定塔图可以加载并通过数据校验</span></label>
+          <label><input type="checkbox" checked disabled /><span>50 层无永久封路、可绕门、可绕守卫或钥匙顺序死锁</span></label>
+          <label><input type="checkbox" checked disabled /><span>正式 GameStore 移动、开门、战斗与楼梯接口逐层走完 50 层</span></label>
           <label><input type="checkbox" checked disabled /><span>经典战斗公式、准确战损、无法破防与生命不足拦截</span></label>
           <label><input type="checkbox" checked disabled /><span>短促自动战斗演出与立即完成按钮</span></label>
           <label><input type="checkbox" checked disabled /><span>竖屏底部固定加大方向键、四个常用工具与地图点按移动</span></label>
@@ -183,12 +199,12 @@
       </section>
 
       <section class="band">
-        <div class="section-title"><span>13</span><h2>方向变更记录</h2></div>
+        <div class="section-title"><span>14</span><h2>方向变更记录</h2></div>
         <div class="lead-grid">
           <article><h3>已撤销</h3><p>移动目标、攻击范围拖拽、承诺线、目标隐藏、命中区域、练习模式、专注值和以观察力减速目标。</p></article>
           <article><h3>已替换</h3><p>所有战斗回到经典魔塔固定公式；冒险机关改为显示固定生命代价后的确认事件。</p></article>
           <article><h3>仍然保留</h3><p>50 层固定探索、商店、怪物、NPC、物品、钥匙门、回层传送、本地存档与可持续扩写的数据框架。</p></article>
-          <article><h3>后续判断</h3><p>自动曲线已经建立；下一步优先人工验证每段的地图路线是否真的产生预期取舍，再扩写敌人、事件与叙事。</p></article>
+          <article><h3>拓扑修正</h3><p>旧生成器曾出现第 11、15、31 层永久封路，以及大量可绕门和可绕守卫。现已将门洞、必经点、永久对象支路与真实运行时通关纳入硬性验收。</p></article>
         </div>
       </section>
     </main>

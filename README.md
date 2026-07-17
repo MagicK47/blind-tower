@@ -27,6 +27,18 @@ npm run dev
 npm run build
 ```
 
+## 关卡拓扑与回归测试
+
+50 层地图不是只检查“能生成”。生成器只接受满足以下条件的布局：NPC 与商店不会堵住主路；每扇门都位于两侧有墙的真实门洞，关闭后无法绕行；守卫必须是通往出口的必经战斗；主线钥匙可按黄、蓝、红门的实际顺序取得；支路怪物与机关不会意外变成主线强制内容。
+
+```bash
+npm run audit:floors
+npm run smoke:floors
+npm run balance
+```
+
+`audit:floors` 对 50 层执行图拓扑与钥匙状态寻路；`smoke:floors` 使用正式 `GameStore` 的移动、开门、拾取、战斗和上楼接口逐层走完游戏；`balance` 继续验证四种资源策略和十个难度台阶。任何一层出现永久封路、可绕门、可绕守卫或开门顺序死锁都会让检查失败。
+
 ## 美术资源
 
 游戏使用 Kenney 的 Tiny Dungeon 与 UI Pack: RPG Expansion 素材，相关 CC0 许可文件随资源保存在 `public/assets/LICENSE-KENNEY-*.txt`。

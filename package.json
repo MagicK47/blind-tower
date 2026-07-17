@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "audit:floors": "node scripts/run-floor-audit.mjs",
+    "smoke:floors": "node scripts/run-floor-runtime-smoke.mjs",
     "balance": "node scripts/run-balance.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },

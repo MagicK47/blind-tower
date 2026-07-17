@@ -120,6 +120,14 @@ export class GameStore {
       const parsed = JSON.parse(raw) as SaveData;
       if (parsed.version !== BALANCE.saveVersion || !parsed.player) return false;
       this.data = parsed;
+      const floor = FLOORS[this.player.floor - 1];
+      if (!floor || floor.grid[this.player.y]?.[this.player.x] === undefined || floor.grid[this.player.y][this.player.x] === "#") {
+        const safeFloor = floor ?? FLOORS[0];
+        this.player.floor = safeFloor.number;
+        this.player.x = safeFloor.start.x;
+        this.player.y = safeFloor.start.y;
+        this.data.log.unshift("塔层路线已经重整，你被安全送回了本层入口。");
+      }
       this.activeEncounter = null;
       this.emit({ type: "state" });
       return true;
